@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataSync Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices: 
+        - Accueil: Texte introductif. But: Informer.
+        - Téléversement: Texte (Formats), Diagramme HTML/CSS (Fusion), Code (read_file). But: Informer.
+        - Traitement: 
+            - Nettoyage: Texte, Sélecteurs interactifs (méthodes) -> màj texte explicatif, Graphique Outlier (Chart.js). But: Informer, Explorer.
+            - Ingénierie: Texte (concepts), Code (feature_engineering). But: Informer.
+        - Web Scraping: Texte (Moteurs, Parsing), Diagramme HTML/CSS (Flux), Code (scrape_*, parse_html). But: Informer.
+        - Analyse NLP: 
+            - Prétraitement: Texte, Interaction (input text + options -> output simulé). But: Illustrer, Interagir.
+            - Sentiment: Texte, Interaction (input text -> output simulé). But: Illustrer, Interagir.
+            - NER: Texte, Exemple HTML stylisé. But: Illustrer.
+            - Topics: Texte, Exemple de topics/mots-clés. But: Informer.
+            - Fréquence: Texte, Graphique Fréquence (Chart.js). But: Illustrer.
+            - Code pour chaque fonction NLP.
+        - Visualisations: Texte, Galerie d'exemples (Chart.js). But: Présenter.
+        - À Propos: Texte détaillé (objectif explorateur, technologies, utilisation, lien avec script Python). But: Informer.
+        - Tous HTML/Tailwind pour layout. Chart.js (Canvas) pour graphiques. Pas de SVG/Mermaid.
+    -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F9FAFB; /* Gris très clair (Claude) */ color: #1F2937; /* Gris foncé (Claude) */ }
+        .navbar-active { color: #4F46E5; /* Indigo (Claude Accent) */ border-bottom: 2px solid #4F46E5; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .code-block { background-color: #1F2937; /* Fond code (Claude) */ color: #D1D5DB; /* Texte code (Claude) */ padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-family: 'Menlo', 'Consolas', 'Liberation Mono', monospace; font-size: 0.875rem; margin-top: 0.5rem; margin-bottom: 1rem;}
+        .interactive-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; /* Gris plus foncé pour labels */}
+        .interactive-select, .interactive-textarea, .interactive-input { width: 100%; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid #D1D5DB; /* Bordure gris clair */ margin-bottom: 1rem; background-color: #FFFFFF; color: #1F2937;}
+        .interactive-textarea { min-height: 80px; }
+        .explanation-box { background-color: #EEF2FF; /* Indigo très clair */ border-left: 4px solid #6366F1; /* Indigo moyen */ padding: 1rem; margin-top: 1rem; border-radius: 0.25rem; color: #3730A3; /* Indigo foncé */}
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; padding: 1rem; background-color: #FFFFFF; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); margin-bottom:1rem;}
+        @media (min-width: 768px) { .chart-container { height: 350px; max-height: 450px;} }
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip .tooltiptext { visibility: hidden; width: 220px; background-color: #1F2937; color: #F9FAFB; text-align: center; border-radius: 6px; padding: 8px; position: absolute; z-index: 10; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; font-size: 0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+        .tab-button { padding: 0.75rem 1.25rem; margin-right: 0.5rem; background-color: #F3F4F6; /* Gris encore plus clair */ border-radius: 0.375rem 0.375rem 0 0; cursor: pointer; color: #374151; border: 1px solid #E5E7EB; border-bottom: none; font-weight: 500;}
+        .tab-button.active { background-color: #FFFFFF; color: #4F46E5; border-bottom: 1px solid #FFFFFF; position:relative; top:1px;}
+        .tab-content { display: none; padding: 1.5rem; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 0.375rem 0.375rem; background-color:#FFFFFF; }
+        .tab-content.active { display: block; }
+        h1, h2 { color: #111827; /* Gris le plus foncé (Claude) */ font-weight: 600;}
+        h3 { color: #1F2937; /* Gris foncé (Claude) */ font-weight: 500;}
+        h4 { color: #374151; /* Gris un peu plus clair (Claude) */ font-weight: 500;}
+        .action-button { background-color: #4F46E5; color: white; padding: 0.6rem 1.2rem; border-radius: 0.375rem; font-weight: 500; transition: background-color 0.2s ease-in-out; }
+        .action-button:hover { background-color: #4338CA; /* Indigo plus foncé */ }
+        .code-block::-webkit-scrollbar { height: 8px; }
+        .code-block::-webkit-scrollbar-track { background: #374151; border-radius: 10px; }
+        .code-block::-webkit-scrollbar-thumb { background: #6B7280; border-radius: 10px; }
+        .code-block::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+        .nlp-interactive-area { background-color: #F9FAFB; padding: 1rem; border-radius: 0.5rem; border: 1px solid #E5E7EB; margin-bottom: 1.5rem; }
+        .nlp-output { margin-top: 0.75rem; padding: 0.75rem; background-color: #FFFFFF; border: 1px dashed #D1D5DB; border-radius: 0.375rem; font-family: 'Menlo', 'Consolas', monospace; font-size: 0.9rem; color: #1E40AF; /* Bleu foncé pour output */}
+    </style>
+</head>
+<body class="text-gray-800 bg-[#F9FAFB]">
+
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-semibold text-[#4F46E5] hover:text-[#4338CA]">DataSync Pro</a>
+            <div class="hidden md:flex space-x-6">
+                <a href="#" class="nav-link text-gray-600 hover:text-[#4F46E5]" data-target="accueil">Accueil</a>
+                <a href="#" class="nav-link text-gray-600 hover:text-[#4F46E5]" data-target="televersement">Téléversement</a>
+                <a href="#" class="nav-link text-gray-600 hover:text-[#4F46E5]" data-target="traitement">Traitement</a>
+                <a href="#" class="nav-link text-gray-600 hover:text-[#4F46E5]" data-target="scraping">Web Scraping</a>
+                <a href="#" class="nav-link text-gray-600 hover:text-[#4F46E5]" data-target="nlp">Analyse NLP</a>
+                <a href="#" class="nav-link text-gray-600 hover:text-[#4F46E5]" data-target="visualisations">Visualisations</a>
+                <a href="#" class="nav-link text-gray-600 hover:text-[#4F46E5]" data-target="apropos">À Propos</a>
+            </div>
+            <div class="md:hidden">
+                <button id="mobileMenuButton" class="text-gray-600 focus:outline-none" title="Menu mobile" aria-label="Ouvrir le menu de navigation">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobileMenu" class="md:hidden hidden bg-white shadow-lg">
+            <a href="#" class="block nav-link text-gray-600 hover:bg-indigo-50 px-6 py-3" data-target="accueil">Accueil</a>
+            <a href="#" class="block nav-link text-gray-600 hover:bg-indigo-50 px-6 py-3" data-target="televersement">Téléversement</a>
+            <a href="#" class="block nav-link text-gray-600 hover:bg-indigo-50 px-6 py-3" data-target="traitement">Traitement</a>
+            <a href="#" class="block nav-link text-gray-600 hover:bg-indigo-50 px-6 py-3" data-target="scraping">Web Scraping</a>
+            <a href="#" class="block nav-link text-gray-600 hover:bg-indigo-50 px-6 py-3" data-target="nlp">Analyse NLP</a>
+            <a href="#" class="block nav-link text-gray-600 hover:bg-indigo-50 px-6 py-3" data-target="visualisations">Visualisations</a>
+            <a href="#" class="block nav-link text-gray-600 hover:bg-indigo-50 px-6 py-3" data-target="apropos">À Propos</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <section id="accueil" class="content-section active">
+            <header class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 text-[#111827]">DataSync Pro</h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Une plongée interactive dans les fonctionnalités du script Python DataSync Pro pour la manipulation et l'analyse de données.</p>
+            </header>
+            <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+                <p class="text-lg text-gray-700 mb-4 leading-relaxed">
+                    DataSync Pro est une application web polyvalente conçue pour simplifier et optimiser vos flux de travail d'analyse de données. Que vous soyez un analyste de données, un chercheur ou simplement curieux d'explorer des données, DataSync Pro vous offre une suite d'outils intégrés pour téléverser, fusionner, nettoyer, transformer vos données, extraire des informations du web, et effectuer des analyses de traitement du langage naturel (NLP) avancées.
+                </p>
+                <p class="text-lg text-gray-700 mb-4 leading-relaxed">
+                    Cet explorateur interactif a pour but de vous guider à travers les différentes fonctionnalités de DataSync Pro. Chaque section met en lumière les capacités clés du script Python sous-jacent, explique les fonctions importantes avec des extraits de code, et propose des éléments interactifs pour vous aider à mieux comprendre les concepts.
+                </p>
+                <p class="text-lg text-gray-700 leading-relaxed">
+                    Naviguez à l'aide de la barre de menu ci-dessus pour explorer les modules dédiés.
+                </p>
+                 <div class="mt-8 p-6 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <h3 class="text-xl font-semibold text-indigo-700 mb-3">Objectif de cet Explorateur</h3>
+                    <p class="text-gray-700">
+                        L'objectif principal de cet outil n'est pas de répliquer l'application DataSync Pro elle-même, mais de servir de guide interactif et de documentation vivante. Il vise à rendre le code source et les concepts de DataSync Pro plus accessibles et compréhensibles, en particulier pour ceux qui souhaitent comprendre son fonctionnement interne ou s'en inspirer.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="televersement" class="content-section">
+            <h2 class="text-3xl font-semibold mb-6">Téléversement & Fusion de Données</h2>
+            <p class="mb-6 text-gray-600 leading-relaxed">Cette section explique comment DataSync Pro gère le chargement de fichiers de données de divers formats et leur fusion éventuelle. L'objectif est de préparer un jeu de données unifié et propre pour les étapes d'analyse ultérieures.</p>
+
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <h3 class="text-xl font-medium mb-3 text-indigo-600">Formats de Fichiers Supportés</h3>
+                <p class="mb-3">DataSync Pro est capable de lire une variété de formats de fichiers grâce à la fonction `read_file`:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li><strong>CSV (.csv)</strong></li>
+                    <li><strong>Excel (.xlsx, .xls)</strong></li>
+                    <li><strong>JSON (.json)</strong></li>
+                    <li><strong>Parquet (.parquet)</strong></li>
+                    <li><strong>Texte Brut (.txt)</strong></li>
+                    <li><strong>AVIF (.avif)</strong> (extraction de métadonnées)</li>
+                </ul>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <h3 class="text-xl font-medium mb-3 text-indigo-600">Fonction Clé : `read_file(file)`</h3>
+                <p class="mb-2">Cette fonction est au cœur du module de téléversement.</p>
+                <div class="code-block">
+<pre>
+@st.cache_data(show_spinner=False)
+def read_file(file):
+    file_ext = os.path.splitext(file.name)[1].lower()
+    try:
+        file.seek(0) 
+        if file_ext == '.csv':
+            # ... logique robuste pour CSV ...
+            df = pd.read_csv(StringIO(content), ...)
+            df = fix_column_names(df) # Standardisation
+            return df
+        # ... autres formats ...
+    except Exception: return None
+</pre>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-medium mb-3 text-indigo-600">Concept de Fusion de Données</h3>
+                <p class="mb-2">Si plusieurs fichiers sont chargés, DataSync Pro permet de les fusionner via `pd.merge()` en utilisant une clé et un type de jointure (interne, externe, gauche, droite).</p>
+                 <div class="flex flex-col md:flex-row gap-4 mt-4">
+                    <div class="flex-1 p-4 bg-indigo-50 rounded-md border border-indigo-200">
+                        <h4 class="font-semibold text-indigo-700">Dataset A</h4>
+                        <p class="text-sm text-gray-600">ID | Valeur_A</p>
+                        <p class="text-sm text-gray-600">1  | 100</p>
+                        <p class="text-sm text-gray-600">2  | 150</p>
+                    </div>
+                    <div class="flex items-center justify-center text-3xl text-indigo-500 mx-2 md:mx-0">&rarr;</div>
+                    <div class="flex-1 p-4 bg-indigo-50 rounded-md border border-indigo-200">
+                        <h4 class="font-semibold text-indigo-700">Dataset B</h4>
+                        <p class="text-sm text-gray-600">ID | Valeur_B</p>
+                        <p class="text-sm text-gray-600">1  | X</p>
+                        <p class="text-sm text-gray-600">3  | Y</p>
+                    </div>
+                    <div class="flex items-center justify-center text-3xl text-indigo-500 mx-2 md:mx-0">&darr; <span class="text-base ml-1">(Fusion Interne sur ID)</span></div>
+                     <div class="flex-1 p-4 bg-green-50 rounded-md border border-green-200 md:col-span-2">
+                        <h4 class="font-semibold text-green-700">Fusionné</h4>
+                        <p class="text-sm text-gray-600">ID | Valeur_A | Valeur_B</p>
+                        <p class="text-sm text-gray-600">1  | 100      | X</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="traitement" class="content-section">
+            <h2 class="text-3xl font-semibold mb-6">Traitement de Données</h2>
+            <p class="mb-6 text-gray-600 leading-relaxed">Cette section détaille les capacités de DataSync Pro pour le nettoyage des données et l'ingénierie de caractéristiques, étapes essentielles pour préparer des données de qualité pour l'analyse.</p>
+            
+            <div class="mb-6">
+                <div class="flex border-b border-gray-300">
+                    <button class="tab-button active" onclick="openTab(event, 'traitement', 'nettoyage-tab')">Nettoyage de Données</button>
+                    <button class="tab-button" onclick="openTab(event, 'traitement', 'ingenierie-tab')">Ingénierie de Caractéristiques</button>
+                </div>
+
+                <div id="nettoyage-tab" class="tab-content active">
+                    <h3 class="text-xl font-medium mb-4 text-indigo-600">Nettoyage de Données (`clean_data`)</h3>
+                    <p class="mb-4">La fonction `clean_data` applique un pipeline de nettoyage configurable :</p>
+                    
+                    <label for="missing_method_selector" class="interactive-label">1. Gestion des Valeurs Manquantes :</label>
+                    <select id="missing_method_selector" class="interactive-select">
+                        <option value="median">Remplacer par la Médiane (numérique)</option>
+                        <option value="mean">Remplacer par la Moyenne (numérique)</option>
+                        <option value="knn">Imputation KNN (numérique)</option>
+                        <option value="interpolate">Interpolation Linéaire (numérique)</option>
+                        <option value="mode">Remplacer par le Mode (catégoriel)</option>
+                        <option value="drop">Supprimer les lignes avec NaN</option>
+                    </select>
+                    <div id="missing_method_explanation" class="explanation-box">Sélectionnez une méthode pour voir son explication.</div>
+
+                    <label for="outlier_method_selector" class="interactive-label mt-6">2. Gestion des Valeurs Aberrantes (Outliers) - Méthode IQR :</label>
+                    <select id="outlier_method_selector" class="interactive-select">
+                        <option value="keep">Conserver les outliers</option>
+                        <option value="cap">Plafonner (Winsorizing)</option>
+                        <option value="remove">Supprimer les lignes avec outliers</option>
+                    </select>
+                    <div id="outlier_method_explanation" class="explanation-box">Sélectionnez une méthode pour voir son explication.</div>
+                    
+                    <div class="mt-6">
+                        <p class="mb-2 interactive-label">3. Autres étapes de nettoyage :</p>
+                         <ul class="list-disc list-inside bg-gray-50 p-4 rounded-md border border-gray-200">
+                            <li>Standardisation des noms de colonnes (`fix_column_names`).</li>
+                            <li>Extraction de caractéristiques de date (année, mois, jour, etc.).</li>
+                            <li>Suppression des lignes dupliquées.</li>
+                            <li>Normalisation/Standardisation optionnelle (MinMax, Standard, Robust Scaler).</li>
+                        </ul>
+                    </div>
+                     <div class="chart-container mt-6">
+                        <canvas id="outlierChart"></canvas>
+                    </div>
+                    <p class="text-center text-sm text-gray-500">Illustration : Distribution avant et après plafonnement des outliers.</p>
+                </div>
+
+                <div id="ingenierie-tab" class="tab-content">
+                    <h3 class="text-xl font-medium mb-4 text-indigo-600">Ingénierie de Caractéristiques (`feature_engineering`)</h3>
+                    <p class="mb-4">Création de nouvelles caractéristiques pour améliorer les modèles :</p>
+                    <ul class="list-disc list-inside space-y-3 bg-gray-50 p-4 rounded-md border border-gray-200">
+                        <li><span class="font-semibold">Binning/Discrétisation :</span> Numérique vers catégoriel (ex: `pd.qcut`).</li>
+                        <li><span class="font-semibold">Encodage Catégoriel :</span> One-Hot Encoding ou Label Encoding.</li>
+                        <li><span class="font-semibold">Caractéristiques Polynomiales :</span> Capture de relations non linéaires (ex: `PolynomialFeatures`).</li>
+                        <li><span class="font-semibold">Analyse en Composantes Principales (PCA) :</span> Réduction de dimensionnalité.</li>
+                    </ul>
+                    <div class="code-block mt-4">
+<pre>
+@st.cache_data(show_spinner=False)
+def feature_engineering(df, poly_degree=2, ...):
+    if bin_cols: # ... pd.qcut ...
+    if encode_cols: # ... OneHotEncoder / LabelEncoder ...
+    if poly_degree > 1: # ... PolynomialFeatures ...
+    if pca_components > 0: # ... PCA ...
+    return df, steps
+</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="scraping" class="content-section">
+            <h2 class="text-3xl font-semibold mb-6">Web Scraping</h2>
+            <p class="mb-6 text-gray-600 leading-relaxed">Extraction de données depuis des pages web avec Playwright/Selenium et BeautifulSoup.</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-medium mb-3 text-indigo-600">Moteurs de Scraping</h3>
+                    <p class="mb-2"><span class="font-semibold">Playwright :</span> Moderne, gère JS, asynchrone.</p>
+                    <p><span class="font-semibold">Selenium :</span> Classique, éprouvé.</p>
+                    <p class="text-sm mt-1">Fallback sur `requests` en cas d'échec.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-medium mb-3 text-indigo-600">Parsing HTML (`parse_html`)</h3>
+                    <ul class="list-disc list-inside text-sm space-y-1">
+                        <li>Tables HTML (`pd.read_html`).</li>
+                        <li>Listes, en-têtes, paragraphes (BeautifulSoup).</li>
+                        <li>Extraction ciblée (tags, classes, IDs).</li>
+                        <li>Données structurées (JSON-LD, Microdata avec `extruct`).</li>
+                        <li>Nettoyage avec `bleach`.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="nlp" class="content-section">
+            <h2 class="text-3xl font-semibold mb-6">Analyse de Traitement du Langage Naturel (NLP)</h2>
+            <p class="mb-6 text-gray-600 leading-relaxed">Extraction d'informations à partir de textes avec NLTK et TextBlob.</p>
+
+            <div class="space-y-8">
+                <div>
+                    <h3 class="text-xl font-medium mb-3 text-indigo-600">1. Prétraitement de Texte (`preprocess_text`)</h3>
+                    <p class="mb-3">Normalisation du texte pour analyse : minuscules, suppression ponctuation/mots vides, lemmatisation.</p>
+                    <div class="nlp-interactive-area">
+                        <label for="nlpInputText" class="interactive-label">Texte à prétraiter :</label>
+                        <textarea id="nlpInputText" class="interactive-textarea" rows="3">Les chats joueurs courent après les souris grises.</textarea>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2 my-3">
+                            <label class="flex items-center space-x-2"><input type="checkbox" id="nlpLowercase" class="form-checkbox h-5 w-5 text-indigo-600" checked><span>Minuscules</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" id="nlpPunctuation" class="form-checkbox h-5 w-5 text-indigo-600" checked><span>Ponctuation</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" id="nlpStopwords" class="form-checkbox h-5 w-5 text-indigo-600" checked><span>Mots vides</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" id="nlpLemmatize" class="form-checkbox h-5 w-5 text-indigo-600" checked><span>Lemmatisation</span></label>
+                        </div>
+                        <button id="nlpPreprocessButton" class="action-button">Prétraiter (Simulation)</button>
+                        <div class="nlp-output" id="nlpOutputText">Résultat du prétraitement ici...</div>
+                    </div>
+                    <div class="code-block text-sm">
+<pre>
+def preprocess_text(text, remove_stopwords=True, lemmatize=True, ...):
+    processed_text = str(text).lower() # Minuscules
+    processed_text = processed_text.translate(str.maketrans('', '', string.punctuation)) # Ponctuation
+    tokens = word_tokenize(processed_text) # Tokenisation
+    if remove_stopwords: tokens = [t for t in tokens if t not in stop_words]
+    if lemmatize: tokens = [WordNetLemmatizer().lemmatize(t) for t in tokens]
+    return ' '.join(tokens)
+</pre>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-medium mb-3 text-indigo-600">2. Analyse de Sentiment (`perform_sentiment_analysis`)</h3>
+                    <p class="mb-3">Détermination de la polarité (positif/négatif/neutre) et subjectivité avec TextBlob.</p>
+                     <div class="nlp-interactive-area">
+                        <label for="sentimentInputText" class="interactive-label">Texte pour analyse de sentiment :</label>
+                        <textarea id="sentimentInputText" class="interactive-textarea" rows="2">C'est une journée absolument magnifique et joyeuse !</textarea>
+                        <button id="sentimentAnalyzeButton" class="action-button">Analyser Sentiment (Simulation)</button>
+                        <div class="nlp-output" id="sentimentOutput">Polarité: ..., Subjectivité: ..., Sentiment: ...</div>
+                    </div>
+                    <div class="code-block text-sm">
+<pre>
+def perform_sentiment_analysis(texts):
+    # ... boucle sur les textes ...
+    blob = TextBlob(str(text))
+    polarity = blob.sentiment.polarity
+    subjectivity = blob.sentiment.subjectivity
+    # ... classification en positif/négatif/neutre ...
+    return pd.DataFrame(results)
+</pre>
+                    </div>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold text-indigo-600 mb-2">3. Reconnaissance d'Entités Nommées (NER)</h3>
+                        <p class="text-sm mb-2">Identifie personnes, lieux, organisations avec NLTK (`ne_chunk`).</p>
+                        <p class="text-sm">Exemple : <span class="bg-indigo-100 px-1 rounded">Apple Inc.</span><sub>ORG</sub> a été fondée par <span class="bg-green-100 px-1 rounded">Steve Jobs</span><sub>PER</sub> en <span class="bg-yellow-100 px-1 rounded">Californie</span><sub>GPE</sub>.</p>
+                        <div class="code-block text-xs mt-2">
+<pre>
+def extract_named_entities(texts):
+    # ...
+    tokens = word_tokenize(str(text))
+    pos_tags = pos_tag(tokens)
+    chunks = ne_chunk(pos_tags)
+    # ... extraction des entités ...
+</pre>
+                        </div>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold text-indigo-600 mb-2">4. Modélisation de Sujets</h3>
+                        <p class="text-sm mb-2">Découvre thèmes latents (LDA ou K-Means) après vectorisation TF-IDF.</p>
+                        <p class="text-sm font-medium mt-1">Exemple de Topics :</p>
+                        <ul class="list-disc list-inside text-xs">
+                            <li>Topic 1 (Technologie): "données, cloud, ia, modèle, algorithme"</li>
+                            <li>Topic 2 (Finance): "marché, action, investissement, banque, risque"</li>
+                        </ul>
+                        <div class="code-block text-xs mt-2">
+<pre>
+def perform_topic_modeling(texts, n_topics=5, method='lda'):
+    vectorizer = TfidfVectorizer(...)
+    doc_term_matrix = vectorizer.fit_transform(processed_texts)
+    if method == 'lda': lda = LatentDirichletAllocation(...)
+    else: kmeans = KMeans(...)
+    # ... extraction des mots clés par topic ...
+</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-indigo-600 mb-2">5. Fréquence des Mots et Visualisations NLP</h3>
+                    <p class="text-sm mb-3">`generate_word_frequency` calcule les mots fréquents. `create_nlp_visualizations` produit des graphiques (Nuage de mots conceptuel, distribution des sentiments, etc.).</p>
+                    <div class="chart-container mt-4">
+                        <canvas id="wordFrequencyChart"></canvas>
+                    </div>
+                    <p class="text-center text-xs text-gray-500">Exemple : Fréquence des mots après prétraitement.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="visualisations" class="content-section">
+            <h2 class="text-3xl font-semibold mb-6">Visualisations de Données</h2>
+            <p class="mb-6 text-gray-600 leading-relaxed">DataSync Pro utilise Plotly Express (dans le script Python) et Chart.js (dans cet explorateur pour illustration) pour créer des visualisations interactives.</p>
+            
+            <h3 class="text-xl font-medium mb-4 text-indigo-600">Exemples de Graphiques Illustratifs</h3>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h4 class="font-semibold mb-2">Heatmap de Corrélation</h4>
+                    <div class="chart-container mx-auto h-56 sm:h-64"><canvas id="corrHeatmapExample"></canvas></div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h4 class="font-semibold mb-2">Histogramme</h4>
+                     <div class="chart-container mx-auto h-56 sm:h-64"><canvas id="histogramExample"></canvas></div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h4 class="font-semibold mb-2">Diagramme à Barres</h4>
+                    <div class="chart-container mx-auto h-56 sm:h-64"><canvas id="barChartExample"></canvas></div>
+                </div>
+                 <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h4 class="font-semibold mb-2">Diagramme Circulaire</h4>
+                     <div class="chart-container mx-auto h-56 sm:h-64"><canvas id="pieChartExample"></canvas></div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h4 class="font-semibold mb-2">Graphique en Ligne</h4>
+                    <div class="chart-container mx-auto h-56 sm:h-64"><canvas id="lineChartExample"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="apropos" class="content-section">
+            <h2 class="text-3xl font-semibold mb-6">À Propos de cet Explorateur</h2>
+            <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg space-y-6">
+                <div>
+                    <h3 class="text-xl font-medium text-indigo-600 mb-2">Objectif</h3>
+                    <p class="text-gray-700 leading-relaxed">
+                        Cet explorateur interactif a été conçu pour offrir une compréhension claire et accessible des fonctionnalités et de l'architecture du script Python <strong class="text-indigo-700">DataSync Pro</strong>. Il ne s'agit pas d'une réplication fonctionnelle de l'application Streamlit originale, mais plutôt d'une documentation vivante et d'un outil pédagogique. L'objectif est de permettre aux utilisateurs et aux développeurs de :
+                    </p>
+                    <ul class="list-disc list-inside mt-2 ml-4 text-gray-700 space-y-1">
+                        <li>Comprendre le rôle de chaque module principal (Téléversement, Traitement, Scraping, NLP).</li>
+                        <li>Visualiser la logique derrière les fonctions clés grâce à des extraits de code et des explications.</li>
+                        <li>Explorer certains concepts de manière interactive (ex: prétraitement NLP simulé).</li>
+                        <li>Apprécier la structure globale et les choix techniques du projet DataSync Pro.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-medium text-indigo-600 mb-2">Technologies Utilisées (pour cet Explorateur)</h3>
+                     <ul class="list-disc list-inside text-gray-700 space-y-1">
+                        <li><strong>HTML :</strong> Structure de base de la page.</li>
+                        <li><strong>Tailwind CSS :</strong> Framework CSS utilitaire pour un design moderne et réactif.</li>
+                        <li><strong>JavaScript (Vanilla) :</strong> Pour la logique interactive, la navigation et la manipulation du DOM.</li>
+                        <li><strong>Chart.js :</strong> Bibliothèque JavaScript pour la création de graphiques illustratifs sur canevas HTML.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-medium text-indigo-600 mb-2">Comment Utiliser cet Explorateur</h3>
+                    <p class="text-gray-700 leading-relaxed">
+                        Utilisez la barre de navigation en haut de la page pour passer d'une section à l'autre. Chaque section se concentre sur un aspect spécifique de DataSync Pro. Prenez le temps de lire les descriptions, d'examiner les extraits de code, et d'interagir avec les éléments prévus à cet effet. Les infobulles (ℹ️) fournissent des détails supplémentaires au survol.
+                    </p>
+                </div>
+                 <div>
+                    <h3 class="text-xl font-medium text-indigo-600 mb-2">Le Script Original DataSync Pro</h3>
+                    <p class="text-gray-700 leading-relaxed">
+                        Le script Python `Data_sync_pro.py` (non exécuté ici) est une application Streamlit complète. Cet explorateur est une documentation de sa structure pour en faciliter la compréhension.
+                    </p>
+                    <p class="text-gray-700 mt-2">
+                        Développé par : <strong class="text-indigo-700">AMINE EL HEND & MOUAD BOULAID</strong>
+                        <br>
+                        Version (du script original) : 7.3 (Mai 2025)
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="bg-white text-center py-8 mt-12 border-t border-gray-200">
+        <p class="text-gray-500">&copy; 2025 DataSync Pro -  By Amine EL HEND & Mouad BOULAID</p>
+    </footer>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const contentSections = document.querySelectorAll('.content-section');
+    const initialSection = 'accueil';
+    const mobileMenuButton = document.getElementById('mobileMenuButton');
+    const mobileMenu = document.getElementById('mobileMenu');
+
+    function navigateTo(targetId) {
+        document.querySelectorAll('nav .space-x-4 .nav-link').forEach(link => {
+            link.classList.remove('navbar-active');
+            if (link.dataset.target === targetId) {
+                link.classList.add('navbar-active');
+            }
+        });
+        document.querySelectorAll('#mobileMenu .nav-link').forEach(link => {
+            link.classList.remove('bg-indigo-100', 'text-indigo-700');
+            if (link.dataset.target === targetId) {
+                link.classList.add('bg-indigo-100', 'text-indigo-700');
+            }
+        });
+
+        contentSections.forEach(section => {
+            section.classList.remove('active');
+            if (section.id === targetId) {
+                section.classList.add('active');
+            }
+        });
+        if (mobileMenu) mobileMenu.classList.add('hidden');
+        window.scrollTo(0, 0);
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            const targetId = link.dataset.target;
+            navigateTo(targetId);
+        });
+    });
+    
+    if (mobileMenuButton) {
+        mobileMenuButton.addEventListener('click', () => {
+            if (mobileMenu) mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    const desktopInitialLink = document.querySelector(`nav .space-x-4 .nav-link[data-target="${initialSection}"]`);
+    if (desktopInitialLink) {
+        desktopInitialLink.classList.add('navbar-active');
+    }
+    const mobileInitialLink = document.querySelector(`#mobileMenu .nav-link[data-target="${initialSection}"]`);
+    if (mobileInitialLink) {
+         mobileInitialLink.classList.add('bg-indigo-100', 'text-indigo-700');
+    }
+    
+    // Ensure initial active section is displayed
+    const initialActiveSection = document.getElementById(initialSection);
+    if (initialActiveSection) {
+        initialActiveSection.classList.add('active');
+    }
+
+
+    // Tab logic needs to be accessible globally or defined within DOMContentLoaded
+    window.openTab = function(event, sectionId, tabId) {
+        const tabButtons = document.querySelectorAll(`#${sectionId} .tab-button`);
+        const tabContents = document.querySelectorAll(`#${sectionId} .tab-content`);
+        tabButtons.forEach(button => button.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        const targetTabContent = document.getElementById(tabId);
+        if (targetTabContent) targetTabContent.classList.add('active');
+    }
+    
+    const missingMethodSelector = document.getElementById('missing_method_selector');
+    const missingMethodExplanation = document.getElementById('missing_method_explanation');
+    const outlierMethodSelector = document.getElementById('outlier_method_selector');
+    const outlierMethodExplanation = document.getElementById('outlier_method_explanation');
+
+    const explanations = {
+        missing: {
+            median: "Médiane : Remplace les NaN par la valeur médiane de la colonne (robuste aux outliers). Principalement pour les données numériques.",
+            mean: "Moyenne : Remplace les NaN par la valeur moyenne de la colonne. Sensible aux outliers. Pour données numériques.",
+            knn: "Imputation KNN : Utilise les K plus proches voisins pour imputer les valeurs manquantes. Peut être plus précis mais coûteux. Pour données numériques.",
+            interpolate: "Interpolation : Remplit les NaN en utilisant des méthodes d'interpolation (ex: linéaire). Utile pour les séries temporelles. Pour données numériques.",
+            mode: "Mode : Remplace les NaN par la valeur la plus fréquente (mode) de la colonne. Principalement pour les données catégorielles.",
+            drop: "Supprimer les lignes : Supprime toutes les lignes contenant au moins une valeur NaN. Peut entraîner une perte de données significative."
+        },
+        outlier: {
+            keep: "Conserver : Aucune action n'est entreprise sur les outliers. Ils sont conservés dans le jeu de données.",
+            cap: "Plafonner (Winsorizing) : Limite les valeurs extrêmes aux bornes définies par la méthode IQR (Q1 - 1.5*IQR et Q3 + 1.5*IQR). Réduit l'impact des outliers sans les supprimer.",
+            remove: "Supprimer : Élimine complètement les lignes qui contiennent des valeurs considérées comme outliers selon la méthode IQR."
+        }
+    };
+
+    if (missingMethodSelector && missingMethodExplanation) {
+        missingMethodSelector.addEventListener('change', function() {
+            missingMethodExplanation.textContent = explanations.missing[this.value] || "Sélectionnez une méthode.";
+        });
+        missingMethodExplanation.textContent = explanations.missing[missingMethodSelector.value];
+    }
+    if (outlierMethodSelector && outlierMethodExplanation) {
+        outlierMethodSelector.addEventListener('change', function() {
+            outlierMethodExplanation.textContent = explanations.outlier[this.value] || "Sélectionnez une méthode.";
+        });
+        outlierMethodExplanation.textContent = explanations.outlier[outlierMethodSelector.value];
+    }
+
+    Chart.defaults.font.family = 'Inter, sans-serif';
+    Chart.defaults.color = '#6B7280'; 
+
+    const outlierCtx = document.getElementById('outlierChart')?.getContext('2d');
+    if (outlierCtx) {
+        new Chart(outlierCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Original V1', 'Original V2 (Outlier)', 'Plafonné V2', 'Original V3'],
+                datasets: [{
+                    label: 'Valeurs', data: [10, 35, 25, 12],
+                    backgroundColor: ['#A5B4FC', '#F87171', '#6EE7B7', '#A5B4FC'],
+                    borderColor: ['#818CF8', '#EF4444', '#34D399', '#818CF8'], borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }, plugins: { legend: { display: false }, title: { display: true, text: 'Concept: Plafonnement d\'Outlier', color: '#111827'}}}
+        });
+    }
+
+    const wordFreqCtx = document.getElementById('wordFrequencyChart')?.getContext('2d');
+    if (wordFreqCtx) {
+        new Chart(wordFreqCtx, {
+            type: 'bar',
+            data: {
+                labels: ['donnée', 'analyse', 'texte', 'modèle', 'résultat', 'client', 'rapport'],
+                datasets: [{
+                    label: 'Fréquence', data: [25, 22, 18, 15, 12, 10, 8],
+                    backgroundColor: '#7DD3FC', borderColor: '#38BDF8', borderWidth: 1
+                }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false }, title: { display: true, text: 'Fréquence des Mots (Exemple)', color: '#111827'}}}
+        });
+    }
+    
+    window.renderChart = function(canvasId, type, labels, data, chartLabel, title, additionalOptions = {}) {
+        const ctx = document.getElementById(canvasId)?.getContext('2d');
+        if (ctx) {
+            const defaultColors = ['#818CF8', '#6EE7B7', '#FCD34D', '#F87171', '#D8B4FE', '#7DD3FC'];
+            const bgColors = (type === 'pie' || type === 'doughnut') ? defaultColors.slice(0, labels.length) : defaultColors[0];
+            let datasets;
+            if (type === 'bubble') { 
+                 datasets = [{ label: chartLabel, data: data, backgroundColor: data.map(d => `rgba(79, 70, 229, ${d.r/25})` ), borderColor: '#4F46E5' }];
+            } else {
+                 datasets = [{ label: chartLabel, data: data, backgroundColor: bgColors, borderColor: bgColors, borderWidth: 1 }];
+            }
+
+            new Chart(ctx, {
+                type: type, data: { labels: labels, datasets: datasets },
+                options: { responsive: true, maintainAspectRatio: false,
+                    scales: (type !== 'pie' && type !== 'doughnut' && type !== 'bubble') ? { y: { beginAtZero: true }, x: { grid: { display: false } } } : 
+                            (type === 'bubble' ? additionalOptions.scales : undefined),
+                    plugins: { legend: { display: (type === 'pie' || type === 'doughnut'), position: 'bottom' }, title: { display: true, text: title, color: '#111827' },
+                        tooltip: (type === 'bubble' ? additionalOptions.plugins.tooltip : undefined)
+                    },
+                    ...additionalOptions
+                }
+            });
+        }
+    }
+
+    renderChart('corrHeatmapExample', 'bubble', [], 
+        [ {x: 0.5, y: 0.5, r: 25}, {x: 1.5, y: 0.5, r: 18}, {x: 2.5, y: 0.5, r: 5},
+          {x: 0.5, y: 1.5, r: 18}, {x: 1.5, y: 1.5, r: 25}, {x: 2.5, y: 1.5, r: 12},
+          {x: 0.5, y: 2.5, r: 5}, {x: 1.5, y: 2.5, r: 12}, {x: 2.5, y: 2.5, r: 25} ], 
+        'Corrélation', 'Heatmap (Concept)', 
+        { scales: { y: { type: 'category', labels: ['Var A', 'Var B', 'Var C'], grid: {display:false} }, x: { type: 'category', labels: ['Var A', 'Var B', 'Var C'], grid: {display:false} } },
+          plugins: { tooltip: { callbacks: { label: function(c) { return `Corrélation: ${ (c.raw.r / 25 * 0.8 + 0.2).toFixed(1) }`; } } }, legend: {display:false} }
+        });
+    renderChart('histogramExample', 'bar', ['0-10', '11-20', '21-30', '31-40', '41-50'], [5, 15, 25, 18, 7], 'Fréquence', 'Distribution (Concept)');
+    renderChart('barChartExample', 'bar', ['Cat. A', 'Cat. B', 'Cat. C'], [30, 55, 20], 'Comptes', 'Fréquence par Catégorie (Concept)');
+    renderChart('pieChartExample', 'pie', ['Opt. 1 (45%)', 'Opt. 2 (30%)', 'Opt. 3 (25%)'], [45, 30, 25], 'Proportions', 'Distribution (Concept)');
+    renderChart('lineChartExample', 'line', ['Jan', 'Fév', 'Mar', 'Avr', 'Mai'], [10, 12, 9, 15, 14], 'Valeur', 'Évolution Temporelle (Concept)');
+
+    const nlpInput = document.getElementById('nlpInputText');
+    const nlpOutput = document.getElementById('nlpOutputText');
+    const nlpPreprocessButton = document.getElementById('nlpPreprocessButton');
+    const nlpOpts = {
+        lowercase: document.getElementById('nlpLowercase'),
+        punctuation: document.getElementById('nlpPunctuation'),
+        stopwords: document.getElementById('nlpStopwords'),
+        lemmatize: document.getElementById('nlpLemmatize')
+    };
+
+    if (nlpPreprocessButton && nlpInput && nlpOutput && nlpOpts.lowercase && nlpOpts.punctuation && nlpOpts.stopwords && nlpOpts.lemmatize) {
+        nlpPreprocessButton.addEventListener('click', () => {
+            let text = nlpInput.value;
+            if (nlpOpts.lowercase.checked) text = text.toLowerCase();
+            if (nlpOpts.punctuation.checked) text = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").replace(/\s{2,}/g," ");
+            
+            let words = text.split(/\s+/);
+            const simulatedStopwords = ['le', 'la', 'les', 'des', 'un', 'une', 'de', 'du', 'et', 'est', 'sur', 'après', 'en', 'pour', 'que', 'qui', 'avec', 'par', 'ne', 'pas', 'plus', 'ce', 'cette', 'ces', 'mon', 'ma', 'mes', 'son', 'sa', 'ses', 'notre', 'votre', 'leur', 'leurs', 'je', 'tu', 'il', 'elle', 'nous', 'vous', 'ils', 'elles', 'ai', 'as', 'a', 'avons', 'avez', 'ont', 'suis', 'es', 'sommes', 'êtes', 'sont', 'étais', 'était', 'étions', 'étiez', 'étaient'];
+            
+            if (nlpOpts.stopwords.checked) {
+                words = words.filter(word => !simulatedStopwords.includes(word.toLowerCase()));
+            }
+            if (nlpOpts.lemmatize.checked) { 
+                words = words.map(word => {
+                    if (word.endsWith('s') && word.length > 1 && !['souris', 'après', 'les', 'des'].includes(word)) return word.slice(0, -1);
+                    if (word.endsWith('ent') && word.length > 3 && !word.endsWith('ment')) return word.slice(0, -3); 
+                    if (word.endsWith('ent') && word.length > 3 && word.endsWith('ment') && word.length > 5) return word.slice(0,-3); // e.g. joueurs -> joueur, courent -> cour
+                    if (word.endsWith('es') && word.length > 2 && !['les', 'des', 'après'].includes(word)) return word.slice(0, -2); // e.g. grises -> gris
+                    if (word.endsWith('e') && word.length > 1 && !['le', 'une', 'de', 'que'].includes(word)) return word.slice(0, -1); // e.g. joueuse -> joueur (approx)
+                    return word;
+                });
+            }
+            nlpOutput.textContent = words.filter(Boolean).join(' '); // filter(Boolean) to remove empty strings
+        });
+    }
+
+    const sentimentInput = document.getElementById('sentimentInputText');
+    const sentimentOutput = document.getElementById('sentimentOutput');
+    const sentimentAnalyzeButton = document.getElementById('sentimentAnalyzeButton');
+
+    if (sentimentAnalyzeButton && sentimentInput && sentimentOutput) {
+        sentimentAnalyzeButton.addEventListener('click', () => {
+            const text = sentimentInput.value.toLowerCase();
+            let polarity = 0;
+            let subjectivity = 0.5; 
+
+            const positiveWords = ['adore', 'magnifique', 'joyeuse', 'excellent', 'super', 'aime', 'bien', 'parfait', 'génial'];
+            const negativeWords = ['déteste', 'horrible', 'triste', 'mauvais', 'nul', 'pire', 'problème'];
+
+            positiveWords.forEach(word => { if (text.includes(word)) polarity += 0.4; });
+            negativeWords.forEach(word => { if (text.includes(word)) polarity -= 0.4; });
+
+            if (text.includes("!")) subjectivity = Math.min(1, subjectivity + 0.3);
+            if (text.split(' ').length > 5) subjectivity = Math.min(1, subjectivity + 0.2);
+            if (text.split(' ').length < 3) subjectivity = Math.max(0, subjectivity - 0.2);
+            
+            polarity = Math.max(-1, Math.min(1, polarity)); 
+            subjectivity = Math.max(0, Math.min(1, subjectivity));
+
+            let sentiment = "Neutre";
+            if (polarity > 0.15) sentiment = "Positif";
+            else if (polarity < -0.15) sentiment = "Négatif";
+
+            sentimentOutput.textContent = `Polarité: ${polarity.toFixed(2)}, Subjectivité: ${subjectivity.toFixed(2)}, Sentiment: ${sentiment}`;
+        });
+    }
+});
+</script>
+</body>
+</html>
